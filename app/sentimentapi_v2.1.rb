@@ -7,15 +7,15 @@ require "#{File.dirname(__FILE__)}/analyzer"
 class SentimentApiV2_1 < Grape::API
   version 'v2.1', :using => :path, :vendor => '3scale'
   error_format :json
-  
+
   #Links to 3scale infrastructure
   $client = ThreeScale::Client.new(:provider_key => "f7bf6b41a6c0fda7a9c8c0cf00e0f611")
-  
+
   #Sentiment Logic component
   @@the_logic = Analyzer.new
 
   ##~ sapi = source2swagger.namespace("sentiment_api_v2.1")
-  ##~ sapi.basePath = "sentiment-test.herokuapp.com"
+  ##~ sapi.basePath = "http://sentiment-forrester.3scale.net:3000"
   ##~ sapi.apiVersion = "v2.1"
   ##
   ## -- Parameters
@@ -32,21 +32,21 @@ class SentimentApiV2_1 < Grape::API
   ##~ op.parameters.add :name => "word", :description => "The word whose sentiment is returned", :dataType => "string", :required => true, :paramType => "path"
   ##~ op.parameters.add @par_app_id
   ##~ op.parameters.add @par_app_key
-  ## 
-  
+  ##
+
   helpers do
     def authenticate!
       response = $client.authorize(:app_id => params[:app_id], :app_key => params[:app_key])
       error!('403 Unauthorized', 403) unless response.success?
     end
-    
-    def report!(method_name='hits', usage_value=1)      
+
+    def report!(method_name='hits', usage_value=1)
       response = $client.report({:app_id => params[:app_id],  :usage => {method_name => usage_value}})
       error!('505 Reporting Error', 505) unless response.success?
     end
-    
+
   end
-  
+
   resource :words do
     get ':word' do
         authenticate!
@@ -64,15 +64,15 @@ class SentimentApiV2_1 < Grape::API
     ##~ op.parameters.add @par_app_id
     ##~ op.parameters.add @par_app_key
     ##
-    
+
     post ':word' do
       authenticate!
       report!('word/post', 1)
       res =  @@the_logic.add_word(params[:word],params[:value])
       res.to_json
-    end 
+    end
   end
-  
+
   ##~ a = sapi.apis.add
   ##~ a.set :path => "/v2.1/sentences/{sentence}.json"
   ##~ op = a.operations.add
