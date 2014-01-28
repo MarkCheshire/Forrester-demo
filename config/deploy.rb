@@ -20,11 +20,11 @@ ssh_options[:keys] = ["/home/mint/.ssh/markazure.key"]
 namespace :deploy do
   task :start, :roles => [:web, :app] do
     run "cd #{deploy_to}/current && nohup bundle exec thin start -C config/production_config.yml -R config.ru"
-    sudo "/usr/local/nginx/sbin/nginx -p /usr/local/nginx/ -c /usr/local/nginx/nginx.conf"
+    sudo "/usr/local/nginx/nginx/sbin/nginx -p /usr/local/nginx/nginx/ -c /usr/local/nginx/nginx.conf"
   end
 
   task :stop, :roles => [:web, :app] do
-    run "kill -QUIT cat /usr/local/nginx/logs/nginx.pid"
+    run "kill -QUIT cat /usr/local/nginx/nginx/logs/nginx.pid"
     run "cd #{deploy_to}/current && nohup bundle exec thin stop -C config/production_config.yml -R config.ru"
   end
 
