@@ -1,30 +1,48 @@
-set :stages, %w(production staging)
-set :default_stage, "staging"
-require 'capistrano/ext/multistage'
+require "bundler/capistrano"
 
-set :application, "Sentiment-API"
-set :repository,  "https://github.com/jerzyn/Forester-demo.git"
+set :application, "cheshire"
+set :user,"azureuser"
 
 set :scm, :git
-# Or: `accurev`, `bzr`, `cvs`, `darcs`, `git`, `mercurial`, `perforce`, `subversion` or `none`
-set :deploy_to, "/var/www/myapp"
+set :repository, "git@github.com:MarkCheshire/Forrester-demo.git"
+set :branch, "master"
+set :use_sudo, false
 
-#role :web, "your web-server here"                          # Your HTTP server, Apache/etc
-#role :app, "your app-server here"                          # This may be the same as your `Web` server
-#role :db,  "your primary db-server here", :primary => true # This is where Rails migrations will run
-#role :db,  "your slave db-server here"
+server "cheshire.cloudapp.net", :web, :app, :db, primary: true
 
-# if you want to clean up old releases on each deploy uncomment this:
-# after "deploy:restart", "deploy:cleanup"
+set :deploy_to, "/home/#{user}/apps/#{application}"
+default_run_options[:pty] = true
+ssh_options[:forward_agent] = false
+ssh_options[:port] = 22
+ssh_options[:keys] = ["~/.ssh/markazure.key"]
 
-# if you're still using the script/reaper helper you will need
-# these http://github.com/rails/irs_process_scripts
 
-# If you are using Passenger mod_rails uncomment this:
-# namespace :deploy do
-#   task :start do ; end
-#   task :stop do ; end
-#   task :restart, :roles => :app, :except => { :no_release => true } do
-#     run "#{try_sudo} touch #{File.join(current_path,'tmp','restart.txt')}"
-#   end
-# end
+namespace :deploy do
+  task :start, :roles => [:web, :app] do
+    run "cd #{deploy_to}/current && nohup bundle exec thin start -C config/production_config.yml -R config.ru"
+    sudo "/usr/local/nginx/sbin/nginx -p /usr/local/nginx/ -c /usr/local/nginx/nginx.conf"
+  end
+
+  task :stop, :roles => [:web, :app] do
+    run "kill -QUIT cat /usr/local/nginx/logs/nginx.pid"
+    run "cd #{deploy_to}/current && nohup bundle exec thin stop -C config/production_config.yml -R config.ru"
+  end
+
+  task :restart, :roles => [:web, :app] do
+    deploy.stop
+    deploy.start
+  end
+
+  task :setup_config, roles: :app do
+    sudo "ln -nfs #{current_path}/config/nginx.conf /usr/local/nginx/nginx.conf"
+    sudo "ln -nfs #{current_path}/config/lua_tmp.lua /usr/local/nginx/lua_tmp.lua"
+    sudo "mkdir -p #{shared_path}/config"
+  end
+  after "deploy:setup", "deploy:setup_config"
+
+  # This will make sure that Capistrano doesn't try to run rake:migrate (this is not a Rails project!)
+  task :cold do
+    deploy.update
+    deploy.start
+  end
+end
