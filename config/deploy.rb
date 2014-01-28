@@ -14,7 +14,7 @@ set :deploy_to, "/home/#{user}/apps/#{application}"
 default_run_options[:pty] = true
 ssh_options[:forward_agent] = false
 ssh_options[:port] = 22
-ssh_options[:keys] = ["~/.ssh/markazure.key"]
+ssh_options[:keys] = ["/home/mint/.ssh/markazure.key"]
 
 
 namespace :deploy do
